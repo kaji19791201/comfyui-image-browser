@@ -391,14 +391,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Fallback-aware text copy for non-HTTPS / mobile environments.
+    // navigator.clipboard is only available in secure contexts (HTTPS or localhost);
+    // on LAN IP access from a phone we must fall back to execCommand.
+    async function copyTextSafe(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (e) { /* fall through */ }
+        }
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.top = '0';
+            ta.style.left = '0';
+            ta.style.opacity = '0';
+            ta.style.pointerEvents = 'none';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            return ok;
+        } catch (e) {
+            console.error('Fallback copy failed:', e);
+            return false;
+        }
+    }
+
     async function copyImageToClipboard(imageUrl) {
         try {
             const response = await fetch(imageUrl);
             const blob = await response.blob();
-            await navigator.clipboard.write([
-                new ClipboardItem({ [blob.type]: blob })
-            ]);
-            showNotification('Image copied to clipboard');
+            if (navigator.clipboard && window.ClipboardItem && window.isSecureContext) {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+                showNotification('Image copied to clipboard');
+            } else {
+                // Mobile/HTTP fallback: image blobs can't be put on the clipboard,
+                // so copy the URL instead as a best-effort alternative.
+                const ok = await copyTextSafe(imageUrl);
+                if (ok) showNotification('Image URL copied (blob copy unavailable)');
+                else showNotification('Failed to copy image', 'error');
+            }
         } catch (error) {
             console.error('Error copying image:', error);
             showNotification('Failed to copy image', 'error');
@@ -417,8 +457,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fullPath = folder ? `${folder.path}\\${imageData.path}` : imageData.path;
             }
 
-            await navigator.clipboard.writeText(fullPath);
-            showNotification('Path copied to clipboard');
+            const ok = await copyTextSafe(fullPath);
+            if (ok) showNotification('Path copied to clipboard');
+            else showNotification('Failed to copy path', 'error');
         } catch (error) {
             console.error('Error copying path:', error);
             showNotification('Failed to copy path', 'error');
@@ -428,11 +469,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function copyPromptToClipboard(promptText, promptLabel = 'Prompt') {
         if (!promptText) return;
 
-        try {
-            await navigator.clipboard.writeText(promptText);
+        const ok = await copyTextSafe(promptText);
+        if (ok) {
             showNotification(`${promptLabel} copied to clipboard`);
-        } catch (error) {
-            console.error(`Error copying ${promptLabel}:`, error);
+        } else {
             showNotification(`Failed to copy ${promptLabel.toLowerCase()}`, 'error');
         }
     }
