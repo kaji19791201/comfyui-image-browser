@@ -1666,6 +1666,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: true });
 
+    // --- Swipe support for mobile ---
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    const swipeThreshold = 40; // px
+
+    const modalEl = document.getElementById('modal');
+    modalEl.addEventListener('touchstart', e => {
+        if (modalZoom > 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchEndX = touchStartX;
+        touchEndY = touchStartY;
+    }, { passive: true });
+
+    modalEl.addEventListener('touchmove', e => {
+        if (modalZoom > 1) return;
+        touchEndX = e.touches[0].clientX;
+        touchEndY = e.touches[0].clientY;
+    }, { passive: true });
+
+    modalEl.addEventListener('touchend', e => {
+        if (modalZoom > 1) return;
+        handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Only trigger if horizontal movement is dominant and exceeds threshold
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
+            if (deltaX > 0) {
+                navigatePrev();
+            } else {
+                navigateNext();
+            }
+        }
+    }
+
     document.addEventListener('keydown', e => {
         const modal = document.getElementById('modal');
         const compareModal = document.getElementById('compareModal');

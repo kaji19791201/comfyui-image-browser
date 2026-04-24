@@ -1506,28 +1506,48 @@
             /* Folder dropdown: don't overflow the viewport */
             .folder-dropdown { right: 0; left: 0; min-width: 0; width: 100%; }
 
-            /* Modal: stack vertically — image on top, metadata on bottom */
-            .modal-content { flex-direction: column; }
+            /* Modal: scrollable vertical stack */
+            .modal-content { 
+                flex-direction: column; 
+                overflow-y: auto; 
+                display: block; 
+                touch-action: pan-y; /* Prevent horizontal browser gestures like swipe-back */
+            }
             .modal-left {
-                flex: 0 0 50vh;
                 width: 100%;
-                height: 50vh;
-                padding: 0.5rem;
-                padding-right: 0.5rem;
+                height: 100vh;
+                padding: 0;
+                position: relative;
+                flex: none;
             }
             .modal-right {
                 width: 100%;
                 height: auto;
-                flex: 1 1 auto;
-                min-height: 0;
                 border-top: 1px solid #3a3a3a;
+                flex: none;
+            }
+
+            /* Ensure image fits nicely in the larger area */
+            .modal-left img, .modal-left video {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
             }
 
             /* Close button: top-right of viewport, not offset by sidebar width */
-            .modal-close { top: 0.5rem; right: 0.5rem; }
+            .modal-close { top: 0.5rem; right: 0.5rem; z-index: 20; }
 
-            /* Nav arrows: keep them on the image half, not tied to the 420px offset */
-            .modal-nav { width: 40px; height: 40px; top: 25vh; }
+            /* Nav arrows: overlap the image with semi-transparent background */
+            .modal-nav { 
+                width: 44px; 
+                height: 60px; 
+                top: 50%; 
+                transform: translateY(-50%); 
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 4px;
+                z-index: 10;
+                border: none;
+            }
             .modal-nav-prev { left: 0.5rem; }
             .modal-nav-next { right: 0.5rem; }
 
@@ -1565,8 +1585,8 @@
         @media (max-width: 420px) {
             .gallery { grid-template-columns: repeat(2, 1fr); }
             .image-card img, .image-card video, .audio-thumbnail { height: 140px; }
-            .modal-left { flex-basis: 45vh; height: 45vh; }
-            .modal-nav { top: 22vh; }
+            .modal-left { height: 100vh; }
+            .modal-nav { top: 50vh; }
         }
     </style>
 </head>
